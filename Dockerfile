@@ -8,6 +8,12 @@ COPY . /autograder/
 
 RUN apt-get update && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+export HOME=/
+
+RUN curl -O https://beta.quicklisp.org/quicklisp.lisp
+
+RUN sbcl --load quicklisp.lisp
+
 WORKDIR /autograder
 
 RUN acl2s < example.lisp
