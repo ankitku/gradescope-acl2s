@@ -8,11 +8,10 @@ COPY . /autograder/
 
 RUN apt-get update && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-export HOME=/
+ENV HOME=/
 
 RUN curl -O https://beta.quicklisp.org/quicklisp.lisp
-
-RUN sbcl --load quicklisp.lisp
+RUN sbcl --load quicklisp.lisp --eval '(quicklisp-quickstart:install)'
 
 WORKDIR /autograder
 
