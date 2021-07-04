@@ -8,6 +8,7 @@
 :q
 (load "~/quicklisp/setup.lisp")
 (ql:quickload :jsown)
+(in-package "ACL2S")
 
 (defun load-acl2s-file (filename)
   (progn (defparameter *j* (open filename))

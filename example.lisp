@@ -9,6 +9,7 @@
 
 ;; load autograder infrastructure
 (load "autograder_raw_code.lsp")
+(in-package "ACL2S")
 
 ;; a function to compare instr and submitted functions
 (defun check-function (checkform)
