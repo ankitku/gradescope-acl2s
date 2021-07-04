@@ -1,9 +1,9 @@
-;;----------------------------------------------------------------------------------
+;;--------------------------------------------------------------------------------------
 ;; Author : Ankit Kumar
-;; The following code can be loaded after instructor's and student's versions
-;; of solutions are loaded into ACL2s. Wrapping up tests in grade function will
-;; record grades and finish-grading will generate an output result.json file.
-;;----------------------------------------------------------------------------------
+;; The following code enables grading student's versions of solutions loaded in ACL2s. 
+;; Wrapping up tests in grade function will record grades and finish-grading will 
+;; generate an output results.json file.
+;;--------------------------------------------------------------------------------------
 
 :q
 (load "~/quicklisp/setup.lisp")
