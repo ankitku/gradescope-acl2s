@@ -15,4 +15,6 @@ RUN sbcl --load quicklisp.lisp --eval '(quicklisp-quickstart:install)'
 
 WORKDIR /autograder
 
+RUN mkdir results
+
 RUN acl2s < example.lisp

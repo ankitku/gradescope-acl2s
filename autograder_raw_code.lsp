@@ -39,7 +39,7 @@
   
 
 (defun finish-grading ()
-  (with-open-file (str "results.json"
+  (with-open-file (str "results/results.json"
 		       :direction :output
 		       :if-exists :supersede
 		       :if-does-not-exist :create)
