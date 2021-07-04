@@ -5,15 +5,6 @@
 ;; record grades and finish-grading will generate an output result.json file.
 ;;----------------------------------------------------------------------------------
 
-(in-package "ACL2S")
-(include-book "../interface/top")
-
-;;test function
-(definec len2 (x :tl) :nat
-  (if (endp x)
-      0
-    (+ 1 (len2 (rest x)))))
-
 :q
 (load "~/quicklisp/setup.lisp")
 (ql:quickload :jsown)
@@ -54,7 +45,8 @@
     (format str (jsown:to-json
 		 (jsown:new-js
 		  ("tests" *test-score-jsons*)
-		  ("score" *total-score*))))))
+		  ("score" *total-score*)))))
+  (sb-ext:exit))
 
 
 ;; Usage
