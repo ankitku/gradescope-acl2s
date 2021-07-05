@@ -12,6 +12,13 @@
 (load "autograder_raw_code.lsp")
 (in-package "ACL2S")
 
+;; a function to compare instr and submitted functions
+(defun check-function (checkform)
+  (let* ((res (itest?-query checkform)))
+    (if (car res)
+	(cons nil (format nil "[Mistake in function definition, try with these counterexamples : ~a]" (cdr res)))
+      (cons t (format nil "[Correct]")))))
+
 ;; first, load the instructor file
 ;; (or have its contents before :q as shown above)
 (load-acl2s-file "instr.lisp")
