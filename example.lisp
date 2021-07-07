@@ -1,5 +1,6 @@
 (include-book "interface/top")
 
+;; Instructor can define their forms here
 (definec len2 (x :tl) :nat
   (if (endp x)
       0
@@ -7,7 +8,7 @@
 
 :q
 
-;; load autograder infrastructure
+;; load acl2s grading infrastructure
 (load "autograder_raw_code.lsp")
 (in-package "ACL2S")
 
@@ -19,22 +20,21 @@
       (cons t (format nil "[Correct]")))))
 
 ;; first, load the instructor file
-;; (or have its contents before :q as shown)
+;; (or have its contents before :q as shown above)
 (load-acl2s-file "instr.lisp")
 
 
 (defun run-tests ()
-  
-  ;; then, load the student submission
+  ;; Load the student submission
   (load-acl2s-file "hwsubmission.lisp")
 
-  ;; grade form to grade student submission
-  (grade "test1"
-	 5
-	 (check-function '(=> (tlp l) (== (len2 l)
-					  (len3 l)))))
-  
-  ;; finish grading
+  ;; Grade form to grade student submission
+  (grade "test1"          ;; test case name
+	 5                ;; points allocated to this test
+	 (check-function '(=> (tlp l) (== (len2 l)      ;; custom check function 
+					  (len3 l)))))  ;; should return (bool . string)
+  ;; We know that student must have submitted len3 function, if that was asked in the test
+  ;; Finish grading
   (finish-grading))
 
 
