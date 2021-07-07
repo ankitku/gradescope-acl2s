@@ -20,6 +20,9 @@
           (when (endp sexp) (return))
           (ignore-errors (acl2s-event sexp)))))
 
+(defun load-lisp-file (filename)
+  (with-open-file (s filename)
+		(read s)))
 
 (setf *test-score-jsons* nil)
 (setf *total-score* 0)
