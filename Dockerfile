@@ -16,6 +16,9 @@ RUN sbcl --load quicklisp.lisp --eval '(quicklisp-quickstart:install)'
 WORKDIR /autograder
 
 RUN mkdir results
+
+RUN git submodule update --init --recursive
+RUN git submodule foreach git pull origin master
 RUN cd interface && make && cd ..
 
 RUN acl2s < example.lisp
