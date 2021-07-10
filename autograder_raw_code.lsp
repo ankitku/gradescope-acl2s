@@ -10,6 +10,14 @@
 (ql:quickload :jsown)
 (in-package "ACL2S")
 
+;; Check if file was submitted
+(defun check-file-submission (fname)
+  (let ((res (probe-file fname)))
+    (if (== res nil)
+        (cons nil "Submission not found. Did you submit the correct file?")
+      (cons t "File submitted"))))
+
+
 (defun load-acl2s-file (filename)
   (progn (defparameter *j* (open filename))
          (loop
