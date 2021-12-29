@@ -37,8 +37,8 @@
 
 ;; extracts files from submissions folder (in Gradescope)
 (defun extract-submissions ()
-  (b* (((unless (cl-fad:directory-exists-p "submissions/")) nil))
-       (cl-fad:walk-directory "submissions"
+  (b* (((unless (cl-fad:directory-exists-p "submission/")) nil))
+       (cl-fad:walk-directory "submission"
                               (lambda (child)
                                 (rename-file child
                                              (make-pathname :defaults child
