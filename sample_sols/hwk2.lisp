@@ -1,13 +1,97 @@
 #|
 
-A sample homework, contaning instructor versions of solutions.
+ Copyright © 2021 by Pete Manolios 
+ CS 4820 Fall 2021
 
-Problems have been picked from Pete Monolios's class on Computer Aided Reasoning.
+ Homework 2.
+ Due: 9/23 (Midnight)
+
+ For this assignment, work in groups of 2-3. Send me exactly one
+ solution per team and make sure to follow the submission instructions
+ on the course Web page. In particular, make sure that the subject of
+ your email submission is "CS 4820 HWK 2".
+
+ The group members are:
+ Ankit Kumar
+ Nick Ding (put the names of the group members here)
 
 |#
 
+#|
+
+ In this homework, we will explore the distinction between meta and
+ object languages. See pg. 11 of the Harrison book.
+
+ Here is a little story to set the context. In CS2800 and, briefly, in
+ this class, we reviewed the syntax and semantics of the ACL2s
+ language. What language did we use to do that? English. Technically,
+ we would say that English is the metalanguage used to study the
+ object language ACL2s. Notice "object" here has nothing to do with
+ objects from object-oriented languages. More accurately, we might say
+ mathematical English or CS English is the metalanguage, as fields
+ such as mathematics and CS use a version of English better suited for
+ their purposes, eg, in CS English, words like "implies," "tree,"
+ "induction" and "reasoning" have special meanings.
+ 
+ Mathematical English is not a formal language, hence, just like
+ English, it is ambiguous (though not to the same extent) and one can
+ take many shortcuts in describing things that require appropriate
+ context or even guessing to understand.  What we're going to do in
+ this homework is to use a formal language, ACL2s, as the metalanguage
+ and we are going to define and reason about an arithmetic expression
+ language that includes errors.
+
+ We are also going to use a gradual verification methodology supported
+ by ACL2s. This is ongoing, early stage work that allows us to design
+ systems that get verified gradually. 
+
+ One final note. We will see how to use ACL2s as both the metalanguage
+ and the object language, in the extra credit problems, which I
+ encourage you to do. 
+
+|#
+
+(in-package "ACL2S")
+
+;; First, update ACL2s, by running the script clean-gen-acl2-acl2s.sh
+
+#|
+  
+ Here is a short overview of gradual verification. ACL2s supports the
+ design, development and verification of computational systems by
+ allowing you to set certain parameters. There are four built-in
+ configurations we are going to consider. In order of most to least
+ permissive, they are:
+ 
+ (modeling-start): This is the configuration you will start with. In
+ this configuration, ACL2s will accept anything you tell it, unless it
+ can very quickly find a counterexample. ACL2s will not prove
+ termination, nor will it prove function and body contracts nor will
+ it prove named properties (defthms).
+ 
+ (modeling-validate-defs): In this configuration, ACL2s will now try
+ proving termination and function/ body contracts, but if it can't it
+ will accept your definitions anyway. It will also give itself a bit
+ more time for testing.
+ 
+ (modeling-admit-defs): In this configuration, ACL2s will require
+ proofs of termination and function/body contracts. It will also give
+ itself more time for testing.
+ 
+ (modeling-admit-all): In this configuration, ACL2s will require
+ proofs of properties. You can enable/disable proofs locally. More on
+ that below.
 
 
+|#
+
+; Start with this configuration and once you are done with the
+; homework, go to the next configuration, cranking up the rigor as far
+; as you can. You must get to at least (modeling-validate-defs), but
+; (modeling-admit-defs) is better and (modeling-admit-all) is the
+; best.
+
+(modeling-admit-all)
 
 #|
 
@@ -53,35 +137,35 @@ Problems have been picked from Pete Monolios's class on Computer Aided Reasoning
 
 ;; Use defdata to define the unary operators. Fill in the ...s
 ;; below. If you have questions, ask on Piazza.
-(defdata instr-uoper (enum '(- /)))
+(defdata uoper (enum '(- /)))
 
 ;; Use defdata to define boper the binary operators
 
-(defdata instr-boper (enum '(+ - * / ^)))
+(defdata boper (enum '(+ - * / ^)))
 
-(check= (instr-boperp '*) t)
-(check= (instr-boperp '^) t)
-(check= (instr-boperp '!) nil)
+(check= (boperp '*) t)
+(check= (boperp '^) t)
+(check= (boperp '!) nil)
 
 ;; Use defdata to define saexpr. We will want names for all the
 ;; subtypes, so use the following template. Note that data definitions
 ;; can be mutually recursive.
 
 (defdata
-  (instr-saexpr (or rational  ; or is the same as oneof
+  (saexpr (or rational  ; or is the same as oneof
               var
               usaexpr   ; unary sael expression
               bsaexpr)) ; binary sael expression
-  (usaexpr (list instr-uoper instr-saexpr))
-  (bsaexpr (list instr-saexpr instr-boper instr-saexpr)))
+  (usaexpr (list uoper saexpr))
+  (bsaexpr (list saexpr boper saexpr)))
 
 ;; We now have a formal definition of the SAEL language!  That is, we
 ;; have a recognizer saexprp, which is defined in our metalanguage,
 ;; ACL2s, and which recognizes expression in the object language,
 ;; SAEL. We formalized the syntax of SAEL expressions.
 
-(check= (instr-saexprp '((x + y) - (/ z))) t)
-(check= (instr-saexprp '(x + y + z)) nil)
+(check= (saexprp '((x + y) - (/ z))) t)
+(check= (saexprp '(x + y + z)) nil)
 
 ;; We are now going to define the semantics of SAEL expressions.
 
@@ -113,12 +197,12 @@ Problems have been picked from Pete Monolios's class on Computer Aided Reasoning
 ;; Use the following helper function to lookup the value of v in a
 ;; (remember return 1 if v isn't in a)
 
-(definecd instr-lookup (v :var a :assignment) :rational
+(definecd lookup (v :var a :assignment) :rational
   (match a
     (() 1)
     (((x . val) . &) (if (== x v) val
-                       (instr-lookup v (cdr a))))
-    (& (instr-lookup v (cdr a)))))
+                       (lookup v (cdr a))))
+    (& (lookup v (cdr a)))))
 
 ;; What happens when we divide by 0? We are going to throw an
 ;; error. So, we will model that as follows.
@@ -158,13 +242,12 @@ Problems have been picked from Pete Monolios's class on Computer Aided Reasoning
 
 ;; Feel free to define helper functions as needed.
 
-
-(definec instr-saeval (e :instr-saexpr a :assignment) :rat-err
+(definec saeval (e :saexpr a :assignment) :rat-err
   (match e
     (:rational e)
-    (:var (instr-lookup e a))
+    (:var (lookup e a))
     (:usaexpr
-     (let ((v (instr-saeval (second e) a)))
+     (let ((v (saeval (second e) a)))
        (if (== v *er*)
            *er*
          (match e
@@ -173,10 +256,10 @@ Problems have been picked from Pete Monolios's class on Computer Aided Reasoning
                        *er*
                      (/ 1 v)))))))
     (:bsaexpr
-     (let ((v1 (instr-saeval (first e) a)))
+     (let ((v1 (saeval (first e) a)))
        (if (== v1 *er*)
            *er*
-         (let ((v2 (instr-saeval (third e) a)))
+         (let ((v2 (saeval (third e) a)))
            (if (== v2 *er*)
                *er*
              (match e
@@ -197,34 +280,6 @@ Problems have been picked from Pete Monolios's class on Computer Aided Reasoning
 
 
 
-
-
-
-
-; Configuration: update as per instructions
-(modeling-admit-all)
-
-#|
-
-Q2. Consider the following definition.
-
-|#
-
-(definec ack (n :nat m :nat) :pos
-  :skip-tests t ; ack is slow, so skip testing
-  (cond ((zp n) (1+ m))
-        ((zp m) (ack (1- n) 1))
-        (t (ack (1- n) (ack n (1- m))))))
-
-
-#| 
-
- ACL2s accepts the definition, but your job is to come up with a
- measure function and ACL2s proofs of the corresponding proof
- obligations. 
-
-|#
-
 ; Define, m-ack, a measure function for ack.
 ; Q2a. We are using the definition on page 129
 
@@ -232,5 +287,24 @@ Q2. Consider the following definition.
 ; measure functions, as mentioned in Section 5.5.
 
 ; Q2b. Fill in the definition
-(definec instr-m-ack (n :nat m :nat) :lex
+(definec m-ack (n :nat m :nat) :lex
   `(1 ,n ,(+ n m)))
+
+
+
+; Q2c
+(property (n :nat m :nat)
+	  (=> (and (! (zp n)) (zp m))
+	      (d< (m-ack (1- n) 1) (m-ack n m))))
+
+(property (n :nat m :nat)
+	  (=> (and (! (zp n)) (! (zp m)))
+	      (d< (m-ack n (1- m)) (m-ack n m))))
+	      
+(property (n :nat m :nat)
+	  (=> (and (! (zp n)) (! (zp m)))
+	      (d< (m-ack (1- n) (ack n (1- m))) (m-ack n m))))
+  
+
+
+

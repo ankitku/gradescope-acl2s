@@ -8,6 +8,8 @@
 :q
 (load "~/quicklisp/setup.lisp")
 (ql:quickload :jsown)
+(ql:quickload :cl-fad)
+(ql:quickload :uiop)
 (in-package "ACL2S")
 
 ;; Check if file was submitted
@@ -17,7 +19,7 @@
         (cons nil "Submission not found. Did you submit the correct file?")
       (cons t "File submitted"))))
 
-
+;; loads ACL2s file
 (defun load-acl2s-file (filename)
   (progn (defparameter *j* (open filename))
          (loop
@@ -28,10 +30,22 @@
           (when (endp sexp) (return))
           (ignore-errors (acl2s-event sexp)))))
 
+;; loads lisp file
 (defun load-lisp-file (filename)
   (with-open-file (s filename)
-		(read s)))
+    (read s)))
 
+;; extracts files from submissions folder (in Gradescope)
+(defun extract-submissions ()
+  (b* (((unless (cl-fad:directory-exists-p "submissions/")) nil))
+       (cl-fad:walk-directory "submissions"
+                              (lambda (child)
+                                (rename-file child
+                                             (make-pathname :defaults child
+                                                            :directory (butlast (pathname-directory child))))))))
+  
+
+  
 (setf *test-score-jsons* nil)
 (setf *total-score* 0)
 
@@ -56,12 +70,12 @@
 		       :if-does-not-exist :create)
     (format str (jsown:to-json
 		 (jsown:new-js
-		  ("tests" *test-score-jsons*)
+		  ("tests" (reverse *test-score-jsons*))
 		  ("score" *total-score*)))))
   (sb-ext:exit))
 
 
-;; Usage
+;; Example Usage
 #|
 
 (grade "test1" 10 (t . "correct"))

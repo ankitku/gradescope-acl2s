@@ -1,10 +1,59 @@
 (include-book "interface/top")
 
-;; Instructor can define their forms here
-(definec len2 (x :tl) :nat
-  (if (endp x)
-      0
-    (+ 1 (len2 (rest x)))))
+;; Instructor ACL2s forms here
+;; ------ ------ ------ ------ ------ ------ ------ ------ ------ ------
+(definec <<= (x :all y :all) :bool
+  (or (== x y)
+      (<< x y)))
+
+(definec insert (a :all x :tl) :tl
+  (match x
+    (() (list a))
+    ((e . es) (if (<<= a e)
+                  (cons a x)
+                (cons e (insert a es))))))
+
+(definec isort (x :tl) :tl
+  (match x
+    (() ())
+    ((e . es) (insert e (isort es)))))
+
+(definec less (a :all x :tl) :tl
+  (match x
+    (() ())
+    ((e . es) (if (<< e a)
+                  (cons e (less a es))
+                (less a es)))))
+
+(definec notless (a :all x :tl) :tl
+  (match x
+    (() ())
+    ((e . es) (if (<<= a e)
+                  (cons e (notless a es))
+                (notless a es)))))
+
+(definec qsort (x :tl) :tl
+  (match x 
+    (() ())
+    ((e . es) (app (qsort (less e es))
+                   (list e)
+                   (qsort (notless e es))))))
+
+
+(definec <<= (x :all y :all) :bool
+  (or (== x y)
+      (<< x y)))
+
+(definec insert (a :all x :tl) :tl
+  (match x
+    (() (list a))
+    ((e . es) (if (<<= a e)
+                  (cons a x)
+                (cons e (insert a es))))))
+
+
+;; ------ ------ ------ ------ ------ ------ ------ ------ ------ ------
+
 
 :q
 
@@ -13,11 +62,16 @@
 (in-package "ACL2S")
 
 ;; a function to compare instr and submitted functions
-(defun check-function (checkform)
-  (let* ((res (itest?-query checkform)))
-    (if (car res)
-	(cons nil (format nil "[Mistake in function definition, try with these counterexamples : ~a]" (cdr res)))
-      (cons t (format nil "[Correct]")))))
+(defun query-equiv (checkform)
+  (let* ((err t)
+         (res (ignore-errors (itest?-query checkform)
+                             (setq err nil))))
+    (cond (err (cons nil "[There was an error while checking your submission. Are
+you using the correct names?]"))
+     ((and (car res) (consp (cdr res)))
+           (cons nil (format nil "[Incorrect definition, try with
+these counterexamples : ~a]" (cdr res))))
+          (t (cons t (format nil "[Correct]"))))))
 
 ;; first, load the instructor file
 ;; (or have its contents before :q as shown above)
@@ -25,15 +79,82 @@
 
 
 (defun run-tests ()
-  ;; Load the student submission
-  (load-acl2s-file "hwsubmission.lisp")
+  (extract-submissions) ;;extracts files in "submissions" folder on gradescope
 
-  ;; Grade form to grade student submission
-  (grade "test1"          ;; test case name
-	 5                ;; points allocated to this test
-	 (check-function '(=> (tlp l) (== (len2 l)      ;; custom check function 
-					  (len3 l)))))  ;; should return (bool . string)
-  ;; We know that student must have submitted len3 function, if that was asked in the test
+  
+  (b* ((fname "hwk1.lisp")
+       (res (check-file-submission fname))
+       (-   (grade "check_submission" 0 res))
+       ((unless (car res)) nil))
+    
+    ;; Load student submission
+    (load-acl2s-file fname)
+    
+    ;; Grade form to grade student submission
+    (grade "test1"          ;; test case name
+           5                ;; points allocated to this test
+           (query-equiv '(=> (tlp l) (== (ishort l)      ;; custom check function 
+                                         (qsort l)))))) ;; should return (bool . string)
+
+
+  (b* ((fname "hwk2.lisp")
+       (res (check-file-submission fname))
+       (-   (grade "check_submission" 0 res))
+       ((unless (car res)) nil))
+    
+    ;; Load student submission
+    (load-acl2s-file fname)
+
+    
+    ;; Test Data Equivalence
+    (grade "test-saexpr"          
+           5                
+           (query-equiv '(== (instr-saexprp l)
+                             (saexprp l))))
+
+    
+    ;; Test Function Equivalence
+    (grade "test-lookup"          
+           2                
+           (query-equiv '(=> (and (varp v) (assignmentp a))
+                             (== (instr-lookup v a)
+                                 (lookup v a)))))
+    
+
+    (grade "test-saeval"          
+           5                
+           (query-equiv '(=> (and (instr-saexprp e) (assignmentp a))
+                             (== (instr-saeval e a)
+                                 (saeval e a)))))
+
+
+    ;; Test Properties
+    (grade "test-m-ack-1"
+           2
+           (query-equiv '(=> (and (natp n)
+                                  (natp m)
+                                  (and (! (zp n)) (zp m)))
+                             (d< (m-ack (1- n) 1) (m-ack n m)))))
+
+    (grade "test-m-ack-2"
+           2
+           (query-equiv '(=> (and (natp n)
+                                  (natp m)
+                                  (and (! (zp n)) (! (zp m))))
+                             (d< (m-ack n (1- m)) (m-ack n m)))))
+
+    (grade "test-m-ack-3"
+           2
+           (query-equiv '(=> (and (natp n)
+                                  (natp m)
+                                  (and (! (zp n)) (! (zp m))))
+                             (d< (m-ack (1- n) (ack n (1- m))) (m-ack n m)))))
+    
+           
+
+    )
+
+
   ;; Finish grading
   (finish-grading))
 
@@ -44,4 +165,3 @@
            :init-forms '((set-gag-mode nil)
                          (value :q))
            :toplevel-args "--eval '(declaim (sb-ext:muffle-conditions style-warning))' --eval '(acl2s::run-tests)' --disable-debugger")
-
