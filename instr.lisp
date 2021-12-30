@@ -114,11 +114,10 @@ Problems have been picked from Pete Monolios's class on Computer Aided Reasoning
 ;; (remember return 1 if v isn't in a)
 
 (definecd instr-lookup (v :var a :assignment) :rational
-  (match a
-    (() 1)
-    (((x . val) . &) (if (== x v) val
-                       (instr-lookup v (cdr a))))
-    (& (instr-lookup v (cdr a)))))
+  (cond
+    ((endp a) 1)
+    ((equal (caar a) v) (cdar a)))
+    (t (instr-lookup v (cdr a)))))
 
 ;; What happens when we divide by 0? We are going to throw an
 ;; error. So, we will model that as follows.
