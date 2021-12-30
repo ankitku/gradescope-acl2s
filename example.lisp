@@ -64,19 +64,19 @@
 ;; a function to compare instr and submitted functions
 (defun query-equiv (checkform)
   (let* ((err t)
-         (res (ignore-errors (itest?-query checkform)
-                             (setq err nil))))
-    (cond (err (cons nil "[There was an error while checking your submission. Are
+         (x (ignore-errors (setq res (itest?-query checkform))
+                           (setq err nil))))
+    (cond
+     (err (cons nil "[There was an error while checking your submission. Are
 you using the correct names?]"))
-     ((and (car res) (consp (cdr res)))
-           (cons nil (format nil "[Incorrect definition, try with
+     ((car res)
+      (cons nil (format nil "[Incorrect definition, try with
 these counterexamples : ~a]" (cdr res))))
-          (t (cons t (format nil "[Correct]"))))))
+     (t (cons t (format nil "[Correct]"))))))
 
 ;; first, load the instructor file
 ;; (or have its contents before :q as shown above)
 (load-acl2s-file "instr.lisp")
-
 
 (defun run-tests ()
   (extract-submissions) ;;extracts files in "submissions" folder on gradescope
