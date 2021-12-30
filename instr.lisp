@@ -116,7 +116,7 @@ Problems have been picked from Pete Monolios's class on Computer Aided Reasoning
 (definecd instr-lookup (v :var a :assignment) :rational
   (cond
     ((endp a) 1)
-    ((equal (caar a) v) (cdar a)))
+    ((equal (caar a) v) (cdar a))
     (t (instr-lookup v (cdr a)))))
 
 ;; What happens when we divide by 0? We are going to throw an
