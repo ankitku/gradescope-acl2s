@@ -93,7 +93,7 @@ these counterexamples : ~a]" (cdr res))))
     ;; Grade form to grade student submission
     (grade "test1"          ;; test case name
            5                ;; points allocated to this test
-           (query-equiv '(=> (tlp l) (== (ishort l)      ;; custom check function 
+           (query-equiv '(=> (tlp l) (== (isort l)      ;; custom check function 
                                          (qsort l)))))) ;; should return (bool . string)
 
 

@@ -16,7 +16,7 @@
 (defun check-file-submission (fname)
   (let ((res (probe-file fname)))
     (if (== res nil)
-        (cons nil "Submission not found. Did you submit the correct file?")
+        (cons nil (format nil "Submission ~a not found. Did you submit the correct file?" fname))
       (cons t "File submitted"))))
 
 ;; loads ACL2s file
