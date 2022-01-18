@@ -18,8 +18,8 @@
   (handler-case
       (setq res (itest?-query checkform))
     (error (c)
-           (cons nil "There was an error while checking your submission : ~a"
-                 c)))
+           (cons nil (format nil "There was an error while checking your submission : ~a"
+                 c))))
   (cond
    ((car res)
     (cons nil (format nil "[Incorrect definition, try with
@@ -36,7 +36,7 @@ these counterexamples : ~a]" (cdr res))))
 
 (defun grade-alist (ial sal)
   (let ((score (check-alist ial sal)))
-    (cons t (format nil "~a/~a correct" score (len ial)) score)))
+    (list t (format nil "~a/~a correct" score (len ial)) score)))
 
 ;; first, load the instructor file
 ;; (or have its contents before :q as shown above)
@@ -55,17 +55,19 @@ these counterexamples : ~a]" (cdr res))))
        ((when eb) (setq er-text (concatenate 'string er-text ert))))
     
     ;; Grade form to grade student submission
-    (grade "test right rotate"          ;; test case name
+    (grade "test_right_rotate"          ;; test case name
            5                ;; points allocated to this test
-           (query-equiv '(=> (tlp l) (== (rr l)      ;; custom check function 
-                                         (instr-rr l)))))
+           (query-equiv '(=> (^ (natp n) (tlp l))
+                             (== (rr n l)      ;; custom check function 
+                                 (instr-rr n l)))))
 
 
 
     (grade "test efficient right rotate"          
            5                
-           (query-equiv '(=> (tlp l) (== (err l)      
-                                         (instr-rr l)))))
+           (query-equiv '(=> (^ (natp n) (tlp l))
+                             (== (err n l)      
+                                 (instr-rr n l)))))
 
 
     (grade "test n->b"          
@@ -81,7 +83,7 @@ these counterexamples : ~a]" (cdr res))))
 
 
     (partial-grade "test complexities"          
-                   5                
+                   4                
                    (grade-alist *instr-complexities* *complexities*))
 
 
