@@ -79,7 +79,7 @@
   (with-open-file (s filename)
     (read s)))
 
-;; extracts files from submissions folder (in Gradescope)
+;; extracts files from submissions folder (in Gradescope) before running tests
 (defun extract-submissions ()
   (b* (((unless (cl-fad:directory-exists-p "submission/")) nil))
        (cl-fad:walk-directory "submission"
@@ -104,7 +104,21 @@
                                     ("visibility" "visible")
 				    ("output" output))
 				   *test-score-jsons*))))
-  
+
+(defun partial-grade (name points test)
+  :ic (and (boolp (car test)) (natp points))
+  (b* ((iscorrect (car test))
+       (output    (second test))
+       (score     (third test)))
+    (setf *total-score* (+ *total-score* score))
+    (setf *test-score-jsons* (cons (jsown:new-js
+				    ("name" name)
+				    ("score" score)
+				    ("max_score" points)
+                                    ("visibility" "visible")
+				    ("output" output))
+				   *test-score-jsons*))))
+
 
 (defun finish-grading ()
   (with-open-file (str "results/results.json"

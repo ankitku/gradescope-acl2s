@@ -2,42 +2,7 @@
 
 ;; Instructor ACL2s forms here
 ;; ------ ------ ------ ------ ------ ------ ------ ------ ------ ------
-(definec <<= (x :all y :all) :bool
-  (or (== x y)
-      (<< x y)))
 
-(definec insert (a :all x :tl) :tl
-  (match x
-    (() (list a))
-    ((e . es) (if (<<= a e)
-                  (cons a x)
-                (cons e (insert a es))))))
-
-(definec isort (x :tl) :tl
-  (match x
-    (() ())
-    ((e . es) (insert e (isort es)))))
-
-(definec less (a :all x :tl) :tl
-  (match x
-    (() ())
-    ((e . es) (if (<< e a)
-                  (cons e (less a es))
-                (less a es)))))
-
-(definec notless (a :all x :tl) :tl
-  (match x
-    (() ())
-    ((e . es) (if (<<= a e)
-                  (cons e (notless a es))
-                (notless a es)))))
-
-(definec qsort (x :tl) :tl
-  (match x 
-    (() ())
-    ((e . es) (app (qsort (less e es))
-                   (list e)
-                   (qsort (notless e es))))))
 
 ;; ------ ------ ------ ------ ------ ------ ------ ------ ------ ------
 
@@ -61,9 +26,21 @@
 these counterexamples : ~a]" (cdr res))))
    (t (cons t (format nil "[Correct]")))))
 
+
+(defun check-alist (ial sal)
+  (cond
+   ((endp ial) 0)
+   (t (if (equal (cdar ial) (cdr (assoc-equal (caar ial) sal)))
+          (1+ (check-alist (cdr ial) sal))
+        (check-alist (cdr ial) sal)))))
+
+(defun grade-alist (ial sal)
+  (let ((score (check-alist ial sal)))
+    (cons t (format nil "~a/~a correct" score (len ial)) score)))
+
 ;; first, load the instructor file
 ;; (or have its contents before :q as shown above)
-(load-acl2s-file "instr.lisp")
+(load-acl2s-file "instr-hwk1.lisp")
 
 (defun run-tests ()
   (setq er-text "")
@@ -78,83 +55,112 @@ these counterexamples : ~a]" (cdr res))))
        ((when eb) (setq er-text (concatenate 'string er-text ert))))
     
     ;; Grade form to grade student submission
-    (grade "test1"          ;; test case name
+    (grade "test right rotate"          ;; test case name
            5                ;; points allocated to this test
-           (query-equiv '(=> (tlp l) (== (isort l)      ;; custom check function 
-                                         (qsort l)))))) ;; should return (bool . string)
+           (query-equiv '(=> (tlp l) (== (rr l)      ;; custom check function 
+                                         (instr-rr l)))))
 
 
-  (b* ((fname "hwk2.lisp")
-       (res (check-file-submission fname))
-       (-   (grade "check_submission" 0 res))
-       ((unless (car res)) nil)
-       ((mv eb ert) (load-acl2s-file fname '(erp rat-errp ack)))
-       ((when eb) (setq er-text (concatenate 'string er-text ert))))    
 
-    ;;TODO : RESET test settings after loading student file
-    ;; we want a macro that can be used, to instead of grade, maybe check.
-    ;; "Checking that you did not redefine this function. If this fails, make
-    ;; sure you 1) have the latest version of the homework 2) Use the exact
-    ;; definition from the homework."
-    ;; Macro gets arg: name of the function we are checking. Checking for a
-    ;; redef.
-    ;; see xdoc world, to check for redef of function defs, defthms.
-
-    ;; Reset random seed before every test/ or increase number of ctrex
-    ;; grade should reset the seed to 42.
-    ;; amount of testing
-
-    ;; Contact frontdesk, check if anything is reqd. for gradescope.
-
-    ;; Drew code to query defdata seed, func redef..
-    
-    ;; Test Data Equivalence
-    (grade "test-saexpr"          
+    (grade "test efficient right rotate"          
            5                
-           (query-equiv '(== (instr-saexprp l)
-                             (saexprp l))))
+           (query-equiv '(=> (tlp l) (== (err l)      
+                                         (instr-rr l)))))
 
-    
-    ;; Test Function Equivalence
-    (grade "testing lookup function"          
-           2                
-           (query-equiv '(=> (and (varp v) (assignmentp a))
-                             (== (instr-lookup v a)
-                                 (lookup v a)))))
-    
 
-    (grade "test-saeval"          
+    (grade "test n->b"          
            5                
-           (query-equiv '(=> (and (instr-saexprp e) (assignmentp a))
-                             (== (instr-saeval e a)
-                                 (saeval e a)))))
+           (query-equiv '(=> (nat n) (== (instr-n-to-b n)      
+                                         (n-to-b n)))))
 
 
-    ;; Test Properties
-    (grade "test-m-ack-1"
-           2
-           (query-equiv '(=> (and (natp n)
-                                  (natp m)
-                                  (and (! (zp n)) (zp m)))
-                             (d< (m-ack (1- n) 1) (m-ack n m)))))
+    (grade "test b->n"          
+           5                
+           (query-equiv '(=> (bitvector b) (== (instr-b-to-n b)      
+                                               (b-to-n b)))))
 
-    (grade "test-m-ack-2"
-           2
-           (query-equiv '(=> (and (natp n)
-                                  (natp m)
-                                  (and (! (zp n)) (! (zp m))))
-                             (d< (m-ack n (1- m)) (m-ack n m)))))
 
-    (grade "test-m-ack-3"
-           2
-           (query-equiv '(=> (and (natp n)
-                                  (natp m)
-                                  (and (! (zp n)) (! (zp m))))
-                             (d< (m-ack (1- n) (ack n (1- m))) (m-ack n m)))))
+    (partial-grade "test complexities"          
+                   5                
+                   (grade-alist *instr-complexities* *complexities*))
+
+
+
+
+    ) ;; should return (bool . string)
+
+
+  ;; (b* ((fname "hwk2.lisp")
+  ;;      (res (check-file-submission fname))
+  ;;      (-   (grade "check_submission" 0 res))
+  ;;      ((unless (car res)) nil)
+  ;;      ((mv eb ert) (load-acl2s-file fname '(erp rat-errp ack)))
+  ;;      ((when eb) (setq er-text (concatenate 'string er-text ert))))    
+
+  ;;   ;;TODO : RESET test settings after loading student file
+  ;;   ;; we want a macro that can be used, to instead of grade, maybe check.
+  ;;   ;; "Checking that you did not redefine this function. If this fails, make
+  ;;   ;; sure you 1) have the latest version of the homework 2) Use the exact
+  ;;   ;; definition from the homework."
+  ;;   ;; Macro gets arg: name of the function we are checking. Checking for a
+  ;;   ;; redef.
+  ;;   ;; see xdoc world, to check for redef of function defs, defthms.
+
+  ;;   ;; Reset random seed before every test/ or increase number of ctrex
+  ;;   ;; grade should reset the seed to 42.
+  ;;   ;; amount of testing
+
+  ;;   ;; Contact frontdesk, check if anything is reqd. for gradescope.
+
+  ;;   ;; Drew code to query defdata seed, func redef..
+    
+  ;;   ;; Test Data Equivalence
+  ;;   (grade "test-saexpr"          
+  ;;          5                
+  ;;          (query-equiv '(== (instr-saexprp l)
+  ;;                            (saexprp l))))
+
+    
+  ;;   ;; Test Function Equivalence
+  ;;   (grade "testing lookup function"          
+  ;;          2                
+  ;;          (query-equiv '(=> (and (varp v) (assignmentp a))
+  ;;                            (== (instr-lookup v a)
+  ;;                                (lookup v a)))))
+    
+
+  ;;   (grade "test-saeval"          
+  ;;          5                
+  ;;          (query-equiv '(=> (and (instr-saexprp e) (assignmentp a))
+  ;;                            (== (instr-saeval e a)
+  ;;                                (saeval e a)))))
+
+
+  ;;   ;; Test Properties
+  ;;   (grade "test-m-ack-1"
+  ;;          2
+  ;;          (query-equiv '(=> (and (natp n)
+  ;;                                 (natp m)
+  ;;                                 (and (! (zp n)) (zp m)))
+  ;;                            (d< (m-ack (1- n) 1) (m-ack n m)))))
+
+  ;;   (grade "test-m-ack-2"
+  ;;          2
+  ;;          (query-equiv '(=> (and (natp n)
+  ;;                                 (natp m)
+  ;;                                 (and (! (zp n)) (! (zp m))))
+  ;;                            (d< (m-ack n (1- m)) (m-ack n m)))))
+
+  ;;   (grade "test-m-ack-3"
+  ;;          2
+  ;;          (query-equiv '(=> (and (natp n)
+  ;;                                 (natp m)
+  ;;                                 (and (! (zp n)) (! (zp m))))
+  ;;                            (d< (m-ack (1- n) (ack n (1- m))) (m-ack n m)))))
     
            
 
-    )
+  ;;   )
 
 
   ;; Finish grading
