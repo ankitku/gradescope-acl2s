@@ -39,19 +39,6 @@
                    (list e)
                    (qsort (notless e es))))))
 
-
-(definec <<= (x :all y :all) :bool
-  (or (== x y)
-      (<< x y)))
-
-(definec insert (a :all x :tl) :tl
-  (match x
-    (() (list a))
-    ((e . es) (if (<<= a e)
-                  (cons a x)
-                (cons e (insert a es))))))
-
-
 ;; ------ ------ ------ ------ ------ ------ ------ ------ ------ ------
 
 
@@ -60,6 +47,8 @@
 ;; load acl2s grading infrastructure
 (load "autograder_raw_code.lsp")
 (in-package "ACL2S")
+
+;;TODO : thms for functions that shouldn't be redefined
 
 ;; a function to compare instr and submitted functions
 (defun query-equiv (checkform)
@@ -85,10 +74,8 @@ these counterexamples : ~a]" (cdr res))))
   (b* ((fname "hwk1.lisp")
        (res (check-file-submission fname))
        (-   (grade "check_submission" 0 res))
-       ((unless (car res)) nil))
-    
-    ;; Load student submission
-    (load-acl2s-file fname)
+       ((unless (car res)) nil)
+       ((when (load-acl2s-file fname '(erp rat-errp ack))) nil))
     
     ;; Grade form to grade student submission
     (grade "test1"          ;; test case name
@@ -100,11 +87,25 @@ these counterexamples : ~a]" (cdr res))))
   (b* ((fname "hwk2.lisp")
        (res (check-file-submission fname))
        (-   (grade "check_submission" 0 res))
-       ((unless (car res)) nil))
-    
-    ;; Load student submission
-    (load-acl2s-file fname)
+       ((unless (car res)) nil)
+       ((when (load-acl2s-file fname '(erp rat-errp ack))) nil))    
 
+    ;;TODO : RESET test settings after loading student file
+    ;; we want a macro that can be used, to instead of grade, maybe check.
+    ;; "Checking that you did not redefine this function. If this fails, make
+    ;; sure you 1) have the latest version of the homework 2) Use the exact
+    ;; definition from the homework."
+    ;; Macro gets arg: name of the function we are checking. Checking for a
+    ;; redef.
+    ;; see xdoc world, to check for redef of function defs, defthms.
+
+    ;; Reset random seed before every test/ or increase number of ctrex
+    ;; grade should reset the seed to 42.
+    ;; amount of testing
+
+    ;; Contact frontdesk, check if anything is reqd. for gradescope.
+
+    ;; Drew code to query defdata seed, func redef..
     
     ;; Test Data Equivalence
     (grade "test-saexpr"          
@@ -114,7 +115,7 @@ these counterexamples : ~a]" (cdr res))))
 
     
     ;; Test Function Equivalence
-    (grade "test-lookup"          
+    (grade "testing lookup function"          
            2                
            (query-equiv '(=> (and (varp v) (assignmentp a))
                              (== (instr-lookup v a)

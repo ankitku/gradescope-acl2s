@@ -20,15 +20,45 @@
       (cons t "File submitted"))))
 
 ;; loads ACL2s file
-(defun load-acl2s-file (filename)
-  (progn (defparameter *j* (open filename))
-         (loop
-          (setq sexp
-                (ignore-errors
-                  (let ((*readtable* acl2::*acl2-readtable*))
-                    (read *j*))))
-          (when (endp sexp) (return))
-          (ignore-errors (acl2s-event sexp)))))
+;; check if definitions in notouch were redefined
+
+(defun load-acl2s-file (filename &optional (notouch nil))
+  (set-ld-redefinition-action nil state)
+  ;;error-bit indicates if an error was encountered
+  (setq eb nil)
+  (defparameter *j* (open filename))
+  (loop
+   (setq sexp
+         ;; propagate errors - printed on stdout which is visible
+         ;; useful for must-fail, stack exhaustion..
+         ;; report function redefinitions/warning/error
+         
+         ;; dispatch specific errors, like redef error
+         ;; if definec, defining prohibited func, and see error, report
+         (handler-case
+             (let ((*readtable* acl2::*acl2-readtable*))
+               (read *j* nil 'eof))
+           (error (c)
+                  (format t "Error while reading input file : ~a~&" c)
+                  (setq eb t)
+                  (return))))
+   (when (equal sexp 'eof) (return))
+   (when (equal (car sexp) 'set-ld-redefinition-action)
+     (progn (format t "Attempt to set redefinition feature. Terminating file read operation. Make sure you ~&1) have the latest version of the homework and ~&2) use the exact definitions from the homework.")
+            (setq eb t)
+            (return)))
+   (handler-case (acl2s-event sexp)
+     (error (c)
+            (format t "Error while admitting expression ~a.~&~a~&" sexp c)
+            (setq eb t)
+            (return))))
+  (let ((redefined (intersection-equal
+                    notouch
+                    (acl2::redefined-names state))))
+    (when (consp redefined)
+      (progn (format t "Following definitions, functions or properties were redefined : ~a~&" redefined)
+             (setq eb t))))
+  eb)
 
 ;; loads lisp file
 (defun load-lisp-file (filename)
@@ -43,8 +73,6 @@
                                 (rename-file child
                                              (make-pathname :defaults child
                                                             :directory (butlast (pathname-directory child))))))))
-  
-
   
 (setf *test-score-jsons* nil)
 (setf *total-score* 0)
@@ -70,6 +98,8 @@
 		       :if-does-not-exist :create)
     (format str (jsown:to-json
 		 (jsown:new-js
+                  ;; hidden or visible stdout
+                  ("stdout_visibility" "visible")
 		  ("tests" (reverse *test-score-jsons*))
 		  ("score" *total-score*)))))
   (sb-ext:exit))
