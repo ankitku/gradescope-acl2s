@@ -19,13 +19,23 @@
         (cons nil (format nil "Submission ~a not found. Did you submit the correct file?" fname))
       (cons t "File submitted"))))
 
+
+
+(defun mem-tree (x tr)
+  (cond
+   ((atom tr) (equal x tr))
+   ((endp tr) nil)
+   (t (or (mem-tree x (car tr))
+          (mem-tree x (cdr tr))))))
+
 ;; loads ACL2s file
 ;; check if definitions in notouch were redefined
 
 (defun load-acl2s-file (filename &optional (notouch nil))
   (set-ld-redefinition-action nil state)
-  ;;error-bit indicates if an error was encountered
+  ;;error-bit eb indicates if an error was encountered
   (setq eb nil)
+  (setq ert "")
   (defparameter *j* (open filename))
   (loop
    (setq sexp
@@ -39,26 +49,30 @@
              (let ((*readtable* acl2::*acl2-readtable*))
                (read *j* nil 'eof))
            (error (c)
-                  (format t "Error while reading input file : ~a~&" c)
+                  (setq ert (format nil "Error while reading input file : ~a~&" c))
                   (setq eb t)
                   (return))))
    (when (equal sexp 'eof) (return))
-   (when (equal (car sexp) 'set-ld-redefinition-action)
-     (progn (format t "Attempt to set redefinition feature. Terminating file read operation. Make sure you ~&1) have the latest version of the homework and ~&2) use the exact definitions from the homework.")
+   (when (mem-tree 'set-ld-redefinition-action sexp)
+     (progn (setq ert (format nil "Attempt to set redefinition feature. Terminating file read operation. Make sure you ~&1) have the latest version of the homework and ~&2) use the exact definitions from the homework."))
             (setq eb t)
             (return)))
-   (handler-case (acl2s-event sexp)
+   (handler-case (let ((res (acl2s-event sexp)))
+                   (when (car res)
+                     (progn (setq ert (format nil "ACL2S Error : ~a.~&" (second res)))
+                            (setq eb t)
+                            (return))))
      (error (c)
-            (format t "Error while admitting expression ~a.~&~a~&" sexp c)
+            (setq ert (format nil "Error while admitting expression ~a.~&~a~&" sexp c))
             (setq eb t)
             (return))))
   (let ((redefined (intersection-equal
                     notouch
                     (acl2::redefined-names state))))
     (when (consp redefined)
-      (progn (format t "Following definitions, functions or properties were redefined : ~a~&" redefined)
+      (progn (setq ert (format nil "Following definitions, functions or properties were redefined : ~a~&" redefined))
              (setq eb t))))
-  eb)
+  (mv eb ert))
 
 ;; loads lisp file
 (defun load-lisp-file (filename)
@@ -87,6 +101,7 @@
 				    ("name" name)
 				    ("score" score)
 				    ("max_score" points)
+                                    ("visibility" "visible")
 				    ("output" output))
 				   *test-score-jsons*))))
   
@@ -100,6 +115,7 @@
 		 (jsown:new-js
                   ;; hidden or visible stdout
                   ("stdout_visibility" "visible")
+                  ("output" er-text)
 		  ("tests" (reverse *test-score-jsons*))
 		  ("score" *total-score*)))))
   (sb-ext:exit))

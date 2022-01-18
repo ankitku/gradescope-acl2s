@@ -48,26 +48,25 @@
 (load "autograder_raw_code.lsp")
 (in-package "ACL2S")
 
-;;TODO : thms for functions that shouldn't be redefined
-
 ;; a function to compare instr and submitted functions
 (defun query-equiv (checkform)
-  (let* ((err t)
-         (x (ignore-errors (setq res (itest?-query checkform))
-                           (setq err nil))))
-    (cond
-     (err (cons nil "[There was an error while checking your submission. Are
-you using the correct names?]"))
-     ((car res)
-      (cons nil (format nil "[Incorrect definition, try with
+  (handler-case
+      (setq res (itest?-query checkform))
+    (error (c)
+           (cons nil "There was an error while checking your submission : ~a"
+                 c)))
+  (cond
+   ((car res)
+    (cons nil (format nil "[Incorrect definition, try with
 these counterexamples : ~a]" (cdr res))))
-     (t (cons t (format nil "[Correct]"))))))
+   (t (cons t (format nil "[Correct]")))))
 
 ;; first, load the instructor file
 ;; (or have its contents before :q as shown above)
 (load-acl2s-file "instr.lisp")
 
 (defun run-tests ()
+  (setq er-text "")
   (extract-submissions) ;;extracts files in "submissions" folder on gradescope
 
   
@@ -75,7 +74,8 @@ these counterexamples : ~a]" (cdr res))))
        (res (check-file-submission fname))
        (-   (grade "check_submission" 0 res))
        ((unless (car res)) nil)
-       ((when (load-acl2s-file fname '(erp rat-errp ack))) nil))
+       ((mv eb ert) (load-acl2s-file fname '(erp rat-errp ack)))
+       ((when eb) (setq er-text (concatenate 'string er-text ert))))
     
     ;; Grade form to grade student submission
     (grade "test1"          ;; test case name
@@ -88,7 +88,8 @@ these counterexamples : ~a]" (cdr res))))
        (res (check-file-submission fname))
        (-   (grade "check_submission" 0 res))
        ((unless (car res)) nil)
-       ((when (load-acl2s-file fname '(erp rat-errp ack))) nil))    
+       ((mv eb ert) (load-acl2s-file fname '(erp rat-errp ack)))
+       ((when eb) (setq er-text (concatenate 'string er-text ert))))    
 
     ;;TODO : RESET test settings after loading student file
     ;; we want a macro that can be used, to instead of grade, maybe check.
