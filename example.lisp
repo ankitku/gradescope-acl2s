@@ -19,7 +19,7 @@
       (setq res (itest?-query checkform))
     (error (c)
            (cons nil (format nil "There was an error while checking your submission : ~a"
-                 c))))
+                 (get-captured-output)))))
   (cond
    ((car res)
     (cons nil (format nil "[Incorrect definition, try with
@@ -35,31 +35,35 @@ these counterexamples : ~a]" (cdr res))))
         (check-alist (cdr ial) sal)))))
 
 (defun grade-alist (ial sal)
-  (let ((score (check-alist ial sal)))
-    (list t (format nil "~a/~a correct" score (len ial)) score)))
-
+  (handler-case
+      (let ((score (check-alist ial sal)))
+        (list (if (== score (len ial)) t nil)
+              (format nil "~a/~a correct" score (len ial)) score))
+    (error (c)
+           (list nil (format nil "There was an error while
+                   checking your submission : ~a" (get-captured-output)) 0))))
+  
 ;; first, load the instructor file
 ;; (or have its contents before :q as shown above)
 (load-acl2s-file "instr-hwk1.lisp")
 
 (defun run-tests ()
-  (setq er-text "")
-  (extract-submissions) ;;extracts files in "submissions" folder on gradescope
+  (initialize) ;;sets up required parameters and files needed for grading
 
-  
   (b* ((fname "hwk1.lisp")
        (res (check-file-submission fname))
-       (-   (grade "check_submission" 0 res))
+       (-   (grade "check submission" 0 res))
        ((unless (car res)) nil)
        ((mv eb ert) (load-acl2s-file fname '(erp rat-errp ack)))
-       ((when eb) (setq er-text (concatenate 'string er-text ert))))
+       ((when eb) (collect-error ert))) ;;ert
+    ;;collects errors generated when grading
     
     ;; Grade form to grade student submission
-    (grade "test_right_rotate"          ;; test case name
+    (grade "test right rotate"          ;; test case name
            5                ;; points allocated to this test
            (query-equiv '(=> (^ (natp n) (tlp l))
-                             (== (rr n l)      ;; custom check function 
-                                 (instr-rr n l)))))
+                             (== (rr n l)           ;; custom check function 
+                                 (instr-rr n l))))) ;; should return (bool . string)
 
 
 
@@ -85,11 +89,8 @@ these counterexamples : ~a]" (cdr res))))
     (partial-grade "test complexities"          
                    4                
                    (grade-alist *instr-complexities* *complexities*))
-
-
-
-
-    ) ;; should return (bool . string)
+    ;; partial-grade expects (bool string nat)
+    )
 
 
   ;; (b* ((fname "hwk2.lisp")

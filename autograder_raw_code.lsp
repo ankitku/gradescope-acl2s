@@ -35,7 +35,7 @@
   (set-ld-redefinition-action nil state)
   ;;error-bit eb indicates if an error was encountered
   (setq eb nil)
-  (setq ert "")
+  (setq ert "") ;; error accumulator
   (defparameter *j* (open filename))
   (loop
    (setq sexp
@@ -49,7 +49,7 @@
              (let ((*readtable* acl2::*acl2-readtable*))
                (read *j* nil 'eof))
            (error (c)
-                  (setq ert (format nil "Error while reading input file : ~a~&" c))
+                  (setq ert (format nil "Error while reading input file : ~a~&" (get-captured-output)))
                   (setq eb t)
                   (return))))
    (when (equal sexp 'eof) (return))
@@ -59,11 +59,11 @@
             (return)))
    (handler-case (let ((res (acl2s-event sexp)))
                    (when (car res)
-                     (progn (setq ert (format nil "ACL2S Error : ~a.~&" (second res)))
+                     (progn (setq ert (format nil "ACL2S Error : ~a.~&" (get-captured-output)))
                             (setq eb t)
                             (return))))
      (error (c)
-            (setq ert (format nil "Error while admitting expression ~a.~&~a~&" sexp c))
+            (setq ert (format nil "Error while admitting expression ~a.~&~a~&" sexp (get-captured-output)))
             (setq eb t)
             (return))))
   (let ((redefined (intersection-equal
@@ -87,9 +87,28 @@
                                 (rename-file child
                                              (make-pathname :defaults child
                                                             :directory (butlast (pathname-directory child))))))))
-  
-(setf *test-score-jsons* nil)
-(setf *total-score* 0)
+
+
+(defun collect-error (str)
+  (setq er-text
+        (concatenate 'string er-text str)))
+
+
+(defun initialize ()
+  ;; initializations required before grading
+  (acl2::set-ld-verbose nil state)
+  (acl2::set-ld-prompt nil state)
+  (set-ld-redefinition-action nil state)
+  (set-capture-output t)
+
+  (setq er-text "")
+  (setf *test-score-jsons* nil)
+  (setf *total-score* 0)
+
+  (extract-submissions)) ;;extracts files in "submissions" folder on gradescope
+
+
+
 
 (defun grade (name points test)
   :ic (and (boolp (car test)) (natp points))
