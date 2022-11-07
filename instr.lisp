@@ -192,14 +192,6 @@ Problems have been picked from Pete Monolios's class on Computer Aided Reasoning
 
 
 
-
-
-
-
-
-
-
-
 ; Configuration: update as per instructions
 (modeling-admit-all)
 
